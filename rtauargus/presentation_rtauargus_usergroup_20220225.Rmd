@@ -1,0 +1,95 @@
+---
+title: "<i>rtauargus</i> : Interfacing R with Tau-Argus"
+subtitle: "SDC Tools User Group</br>Meeting 2022"
+author: "Clément Guillo<br/>Julien Jamme<br/>Nathanaël Rastout"
+institute: "Insee, Department of Statistical Methods"
+date: "2022/02/25"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    toc: true
+    toc_depth: 3
+    logo: images/logoInsee.png
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+background-image: url(https://sdctools.github.io/UserSupport/SDCtools2.png)
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_knit$set(root.dir = getwd())
+#remotes::install_github("hadley/emo")
+```
+
+
+
+???
+
+Image credit: [User Support for SDC Tools](https://sdctools.github.io/UserSupport/)
+
+---
+class: center, middle
+
+# Agenda
+
+### Motivation 
+### Principles
+### Examples
+### Further developments
+
+---
+class: inverse, center, middle
+
+# Motivation
+
+---
+
+# Context
+
+- Need to protect complex sets of tables:
+  - from business surveys
+  - multiple linked tables
+  - non-nested hierarchical variables
+  - multiple response variables 
+  - use of **suppressive methods**
+
+--
+
+- $\tau$-Argus: required tool to apply SDC method on data
+  - efficient and reliable tool
+  - without reliable competitor
+  - graphical interface
+
+--
+
+- Need to build a complete workflow using a statistical software
+  - to automate the treatments
+  - to make a reproducible work
+  - to keep records of our treatments
+
+---
+# Context
+
+- Insee used to using `SAS`:
+  - development of a SAS macro interfacing SAS with $\tau$-Argus: `SASTauArgus`
+  - available on github https://github.com/InseeFrLab/SASTauArgus
+  - proven and well tested
+  - `r emo::ji("danger")` documentation only in French.
+
+-- 
+
+- Recently, our choice is to use `R`
+
+---
+
+# Context 
+
+- Firstly, we tested `sdcTable`:
+  - a package full of promises
+  - but it doesn't match all of our needs
+  
+=> need to develop and use our own package
+
