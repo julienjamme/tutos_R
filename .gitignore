@@ -42,5 +42,5 @@ vignettes/*.pdf
 *.shp
 *.shx
 *.dbf
-*.proj
+*.prj
 *.gpkg
