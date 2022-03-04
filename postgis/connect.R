@@ -57,7 +57,7 @@ sf::st_write(
 )
 
 r28_head <- dbGetQuery(conn, 'SELECT * FROM parcelles_rpg.r28 LIMIT 10;')
-r28_head_sf <- st_read(conn, 'SELECT * FROM parcelles_rpg.r28 LIMIT 10;')
+r28_head_sf <- sf::st_read(conn, query = 'SELECT * FROM parcelles_rpg.r28 LIMIT 10;')
 
 # FRANCE METROPOLITAINE
 
@@ -77,6 +77,7 @@ aws.s3::s3write_using(
 )
 
 # DB STORAGE
+conn <- connecter(user, password)
 
 query <- 'CREATE TABLE parcelles_rpg.fr
   (id_parcel VARCHAR(8),
@@ -90,17 +91,17 @@ query <- 'CREATE TABLE parcelles_rpg.fr
 '
 
 dbSendQuery(conn, query)
-dbListTables(conn)
+dbListObjects(conn)
 
 sf::st_write(
-  obj = parcelles_rpg_FR |> rename_with(tolower),
+  obj = parcelles_rpg_FR |> rename_with(tolower) |> rename(geometry = geom),
   dsn = conn,
   Id(schema = 'parcelles_rpg', table = 'fr'),
   append = TRUE
 )
 
 fr_head <- dbGetQuery(conn, 'SELECT * FROM parcelles_rpg.fr LIMIT 10;')
-fr_head_sf <- st_read(conn, 'SELECT * FROM parcelles_rpg.fr LIMIT 10;')
+fr_head_sf <- sf::st_read(conn, query = 'SELECT * FROM parcelles_rpg.fr LIMIT 10;')
 
 
 
