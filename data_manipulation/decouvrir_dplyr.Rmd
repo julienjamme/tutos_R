@@ -1,0 +1,313 @@
+---
+title: "Manipuler des données avec dplyr"
+author: Julien Jamme
+date: '`r format(Sys.Date(), "%d-%m-%Y")`'
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+## Introduction à dplyr
+
+On travaille dans un premier temps avec un data.frame natif sur R et très simple :
+le data.frame `iris`. Le but est d'apprendre les opérations élémentaires disponibles 
+avec le package `dplyr`.
+
+```{r}
+str(iris)
+```
+
+Il faut retenir que toutes les opérations élémentaires de manipulation des données sont 
+portées par des fonctions dont les noms sont des verbes d'action.
+
+### Les opérations de base
+
+- `filter()` : filtrer le data.frame sur les lignes
+- `select()` : sélectionner certaines colonnes du data.frame
+- `rename()` : renommer une variable
+- `arrange()` : trier un tableau
+- `mutate()` : ajouter/calculer/modifier une variable
+- `summarise()` : agréger les  lignes (idéal pour compter, sommer, calculer une moyenne)
+
+En manipulant les données avec `dplyr`, on utilise souvent un nouvel opérateur `%>%`
+appelé `pipe`. Cet opérateur permet d'enchaîner les opérations les unes aux autres 
+et améliore largement la **lisibilité du code**. Par les deux codes ci-dessous font la même 
+chose, mais l'un est plus facile à lire que l'autre.
+
+Calculons la surface moyenne des sépales des iris de l'espèce Sétosa. On suppose
+qu'un sépale a une forme rectangulaire (ce qui n'est pas le cas).
+
+Version 1 - avec `dplyr` sans `pipe`:
+
+```{r}
+summarise(
+  mutate(
+    select(
+      filter(
+        iris,
+        Species == "setosa"
+        ),
+      Sepal.Length, Sepal.Width
+    ),
+    #
+    surface = (Sepal.Length * Sepal.Width)
+  ),
+  surface_moyenne = mean(surface)
+)
+```
+
+
+Version 2 - avec `dplyr` avec `pipe`
+
+```{r}
+iris %>%
+  filter( 
+    Species == "setosa" 
+  ) %>%
+  select(
+    Sepal.Length, Sepal.Width
+  ) %>%
+  mutate(
+    surface = (Sepal.Length * Sepal.Width)
+  ) %>%
+  summarise(
+    surface_moyenne = mean(surface)
+  )
+```
+
+
+Remarques :
+
+- les deux écritures fournissent le même résultat;
+- mais leur sens de lecture est opposé :
+  - sans l'opérateur `%>%`, il faut commencer par lire la fonction la plus à l'intérieur
+  (ici le `filter()` et remonter vers l'extérieur pour comprendre ce qui se passe. En réalité, 
+  on écrirait ce code en plusieurs morceaux pour faciliter sa lecture.
+  - avec l'opérateur `%>%`, il suffit de lire dans le sens de lecture normal : de gauche à droite.
+
+Conclusion : L'opérateur `%>%` permet d'enchaîner beaucoup d'opérations tout en formant 
+un code clair et compréhensible. SOn usage est fortement conseillé et peut s'utiliser 
+avec toutes sortes de fonctions - pas seulement issu de `dplyr`.
+
+Revenons au code ci-dessus pour le comprendre :
+
+```{r}
+iris %>%
+  # filtre les lignes en ne conservant que les iris d'une espèce particulière
+  filter( 
+    Species == "setosa" 
+  ) %>%
+  # On sélectionne deux colonnes d'intérêt (ici l'opération est superflue)
+  select(
+    Sepal.Length, Sepal.Width
+  ) %>%
+  # On calcule la surface de CHAQUE sépale
+  # A l'issue de cette opération le tableau aura TROIS variables
+  mutate(
+    surface = (Sepal.Length * Sepal.Width)
+  ) %>%
+  # On calcule la moyenne des surfaces
+  # Pour agréger les données, l'opération est un `summarise`
+  summarise(
+    surface_moyenne = mean(surface)
+  )
+```
+
+
+### Calculer des statistiques par catégorie avec la fonction `group_by()`
+
+La fonction `group_by` permet de calculer simplement des statistiques par groupes ou 
+catégories. Par exemple, si on souhaite calculer la taille moyenne de la longueur 
+des sépales des iris par espèce, on écrit le code suivant:
+
+```{r}
+iris %>%
+  # 1- On regroupe les données par catégorie (ici l'espèce)
+  group_by(Species) %>%
+  # 2- On agrège les données avec l'opération `summarise()`
+  summarise(
+    longueur_moyenne = mean(Sepal.Length)
+  )
+```
+
+Remarque:
+
+- On obtient un tableau avec autant de lignes qu'il y a de groupes dans le dataframe 
+original : ici trois espèces => trois lignes.
+- En utilisant `mutate()` au lieu de `summarise()`, on aurait également calculé la longueur
+moyenne des sépales par espèce, mais cette information aurait été rajoutée au tableau de départ.
+Voyez la différence ci-dessous.
+
+```{r}
+iris %>%
+  # 1- On regroupe les données par catégorie (ici l'espèce)
+  group_by(Species) %>%
+  # 2- On calcule la moyenne en l'ajoutant dans une nouvelle colonne
+  mutate(
+    longueur_moyenne = mean(Sepal.Length)
+  )
+```
+
+Ainsi, on peut remarquer que tous les iris d'une même espèce ont la même valeur moyenne,
+ce qui est tout à fait logique et attendu. 
+
+L'usage du `mutate()` ou du `summarise()` dépend de ce que l'on souhaite obtenir.
+
+
+### Des opérations additionnelles pour aller plus loin
+
+Un ensemble de fonctions complémentaires facilitent:
+
+- la sélection des lignes par leurs indices (`slice()`);
+- la sélection des colonnes (`starts_with`, `ends_with`, `matches`, `all_of`);
+- le calcul sur plusieurs colonnes à la fois (`across`);
+- la construction de variables catégorielles (`case_when`);
+- le comptage des lignes (`count()`, `n()`);
+- la suppression des doublons (`distinct()`);
+- la récupération d'une variable sous la forme d'un vecteur (`pull()`);
+- les opérations de jointure (`left_join()`, `right_join()`, `inner_join()`, etc.);
+- etc.
+
+
+### Quelques exemples
+
+#### Sélectionner des variables grâce à un motif
+
+Dans le tableau iris, nous souhaitons sélectionner les colonnes concenrnat les longueurs. 
+Ces variables se terminent par "Length".
+
+```{r}
+iris %>%
+  select(ends_with("Length")) %>%
+  head()
+```
+
+ou, en utilisant des expressions régulières (usage avancé)
+
+```{r}
+iris %>%
+  select(matches("Length$")) %>%
+  head()
+```
+
+Si on souhaite conserver aussi l'espèce
+
+```{r}
+iris %>%
+  select("Species", ends_with("Length")) %>%
+  head()
+```
+
+ou, en utilisant des expressions régulières (usage avancé)
+
+```{r}
+iris %>%
+  select(matches("(Species|Length$)", perl = TRUE)) %>%
+  head()
+```
+
+
+#### Calculer la moyenne de plusieurs variables en même temps
+
+On souhaite calculer la moyenne de toutes les variables numériques par espèces:
+
+```{r}
+iris %>%
+  group_by(Species) %>%
+  summarise(
+    across(
+      where(is.numeric), mean
+    )
+  )
+```
+
+La syntaxe de la fonction across() est la suivante:
+
+- le premier argument sert à désigner les variables sur lesquels seront réalisés les calculs (ici toutes les variables numériques);
+- le second argument décrit le calcul à opérer (ici la moyenne)
+
+Autre exemple: calculer la somme des longueurs des sépales et des pétales par espèce :
+
+```{r}
+iris %>%
+  group_by(Species) %>%
+  summarise(
+    across(
+      ends_with("Length"),
+      sum
+    )
+  )
+```
+
+#### Calculer plusieurs statistiques sur plusieurs variables en même temps
+
+On souhaite calculer la moyenne, la médiane et l'écart-type des variables qui 
+concernent les Sépales:
+
+```{r}
+iris %>%
+  group_by(Species) %>%
+  summarise(
+    across(
+      starts_with("Sepal"),
+      list(moy = mean, med = median, sd = sd)
+    )
+  )
+```
+
+
+Un équivalent généralisable à des fonctions plus complexes :
+
+```{r}
+iris %>%
+  group_by(Species) %>%
+  summarise(
+    across(
+      starts_with("Sepal"),
+     list(moy = ~mean(.x), med = ~median(.x), sd = ~sd(.x))
+    )
+  )
+```
+
+Ici le `.x` sert à désigner la position de la variable dans la liste des arguments de la fonction.
+C'est utile, si la fonction admet d'autres arguments.
+
+
+## Documentation
+
+Une feuille résumant les principales fonctions de `dplyr()` est téléchargeable 
+[ici](https://raw.githubusercontent.com/rstudio/cheatsheets/main/data-transformation.pdf)
+
+Très utile également : [la page du site utilitR dédiée à la manipulation des données]()
+
+
+## Remarques
+
+
+- Beaucoup d'autres fonctions existent pour une manipulation avancée des données 
+avec, par exemple, les packages :
+  - `stringr` pour manipuler les chaînes de caractères;
+  - `tidyr` pour pivoter les tableaux;
+  - `forcats` pour manipuler les facteurs;
+  - etc.
+  
+  
+- `dplyr` est limité pour travailler avec des très grosses données:
+  - cad des données de plusieurs dizaines de millions de lignes et une centaine de colonnes;
+  - par exemple la base FLORES avec 6 millions de lignes et 39 variables ne pose aucun problème à traiter avec `dplyr`.
+  - dans ce cas : 
+    - constituer une base de données restreintes aux lignes et colonnes vraiment nécessaires avant de réaliser les calculs pour utiliser `dplyr` sur cet extrait;
+    - utiliser la package `data.table` plus performant sur les très grosses données, mais avec 
+    une syntaxe moins facile à lire et à prendre en main.
+    
+♠

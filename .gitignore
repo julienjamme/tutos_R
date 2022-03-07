@@ -46,6 +46,7 @@ vignettes/*.pdf
 *.gpkg
 
 # other formats
+*.RData
 *.rds
 *.xlsx
 *.html

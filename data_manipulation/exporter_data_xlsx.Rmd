@@ -1,0 +1,106 @@
+---
+title: "Exporter des tableaux sur excel"
+author: Julien Jamme
+date: '`r format(Sys.Date(), "%d-%m-%Y")`'
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(openxlsx)
+```
+
+L'opération d'exportation de tableaux sur un fichier excel, chaque tableau étant dans une feuille à part,
+comprend les opérations suivantes:
+
+
+## 1- Construire les tableaux
+
+```{r}
+tab_1 <- iris %>%
+  group_by(Species) %>%
+  count()
+
+tab_2 <- iris %>%
+  summarise(
+    across(
+      where(is.numeric),
+      list(moy = mean, med = median, sd = sd)
+    )
+  )
+
+tab_3 <- iris %>%
+  filter(
+    Species == "setosa"
+  )
+```
+
+
+## 2- Constituer une liste associant nom de feuille et dataframe correspondant
+
+```{r}
+feuilles_data_list <- list(
+  "Nb iris par espèces" = tab_1,
+  "Stats globales" = tab_2,
+  "Iris de l'espèce Setosa" = tab_3
+)
+```
+
+## 3- Ecrire dans un fichier excel avec la fonction `openxlsx::write.xlsx()`
+
+```{r}
+write.xlsx(feuilles_data_list, file = "resultats_iris.xlsx")
+```
+
+
+## 4- Rappel : Comment sauvegarder des objets R ?
+
+Deux méthodes existent pour sauvegarder des objets construits en R dans des formats 
+propres à R. 
+
+1. La première méthode consiste à les sauvegarder dans un environnement de données 
+au format `.RData`. Par exemple, si on souhaite sauvegarder les trois tableaux 
+construits plus hauts, on fait:
+
+```{r}
+save(
+  tab_1, tab_2, tab_3,
+  file = "tableaux.RData"
+)
+```
+
+La spécificité de cette solution réside dans le fait qu'au moment de recharger 
+les données dans l'environnement de travail (`load("tableaux.RData")`) les trois 
+objets enregistrés vont réapparaître dans l'environnement de travail avec leurs noms. 
+Ainsi, ils écraseront les éventuels objets nommés de la même manière.
+
+2. La seconde solution consiste à sauvegarder un objet `R` au format `.rds`.
+
+```{r}
+saveRDS(tab_1, "tableau_1.rds")
+```
+
+
+Pour réutiliser l'objet, il faut l'importer avec la commande `tab_1 <- readRDS("tableau_1.rds)`.
+Avec cette solution, vous maîtrisez la façon de nommer l'objet importé. Nénamoins, 
+un seul objet `R` est exportable. Ainsi, si je veux exporter mes trois tableaux d'un coup,
+je peux construire une liste et sauvegarder la liste :
+
+```{r}
+mes_tableaux <- list(
+  "tableau_1" = tab_1,
+  "tableau_2" = tab_2,
+  "tableau_3" = tab_3
+)
+
+saveRDS(mes_tableaux, "liste_tableaux.rds")
+```
+
