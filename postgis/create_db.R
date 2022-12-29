@@ -5,7 +5,7 @@ library(dplyr)
 library(dbplyr)
 library(sf)
 
-source("user_pass.R", encoding = "UTF-8")
+# source("user_pass.R", encoding = "UTF-8")
 
 connecter <- function(user, password){
   nom <- "db_tpcarto"
@@ -22,7 +22,7 @@ DBI::dbListObjects(conn)
 # Téléchargement de la BPE 2021
 temp <- tempfile()
 download.file("https://www.insee.fr/fr/statistiques/fichier/3568638/bpe21_ensemble_xy_csv.zip",temp)
-bpe21 <- readr::read_csv2(unz(temp, "bpe21_ensemble_xy.csv"), col_types = readr::cols(LAMBERT_X="n",LAMBERT_Y="n",.default="c"))
+bpe21 <- readr::read_delim(unz(temp, "bpe21_ensemble_xy.csv"), delim = ";", col_types = readr::cols(LAMBERT_X="n",LAMBERT_Y="n",.default="c"))
 str(bpe21)
 unlink(temp)
 table(is.na(bpe21$LAMBERT_X))
@@ -124,18 +124,20 @@ bpe_head<- sf::st_read(conn, query = 'SELECT * FROM bpe21_04 LIMIT 10;')
 str(bpe_head)
 st_crs(bpe_head)
 
+dbDisconnect(conn)
+
 # Ajout de fonds de polygones
 
 # Recupération sur Minio
 
 sf_reg_metro <- aws.s3::s3read_using(
   FUN = sf::st_read,
-  layer = "commune_francemetro_2021",
+  layer = "commune_francemetro_2021.shp",
   drivers = "ESRI Shapefile",
   # Mettre les options de FUN ici
   object = "/fonds/commune_francemetro_2021.shp",
   bucket = "julienjamme",
   opts = list("region" = "")
 )
-
+sf_reg_metro %>% str()
 
