@@ -19,12 +19,24 @@ str(sf_reg_metro)
 plot(st_geometry(sf_reg_metro))
 
 
+# A- Densité de maternités en France métropolitaine
+maternites_metro <- sf::st_read(conn, query = "SELECT * FROM bpe21_metro WHERE TYPEQU='D107';")
+str(maternites_metro)
+
+maternites_metro %>% 
+  group_by(dep) %>% 
+  summarise(n_mat = n())
+
+
+ 
+
+
+# B- Isochrones
 
 # 1- Construire les courbes isochrones d'accès à un équipement
 
 # a- Choisir un équipement dans la base bpe21 (metro ou dom)
-maternites_metro <- sf::st_read(conn, query = "SELECT * FROM bpe21_metro WHERE TYPEQU='D107';")
-str(maternites_metro)
+
 
 mater <- maternites_metro[1,]
 
@@ -47,7 +59,7 @@ leaflet() %>%
 (iso <- osrmIsochrone(
   loc = mater_coords, # coordonnées du point de référence
   breaks = seq(0,60,10), # valeurs des isochrones à calculer en minutes
-  res = 60 # détermine le nombre de points utilisés (res*res) pour dessiner les isochornes 
+  res = 100 # détermine le nombre de points utilisés (res*res) pour dessiner les isochornes 
 ))
 str(iso)
 
@@ -58,22 +70,33 @@ plot(iso["isomax"], breaks = bks, pal = pals,
      main = "Isochrones (in minutes)", reset = FALSE)
 points(x = mater_coords[1], y = mater_coords[2], pch = 4, lwd = 2, cex = 1.5)
 
-pal <- colorFactor("Greens", domain = iso$isomax, levels = bks[-1],reverse = TRUE)
-
 leaflet() %>% 
   setView(lng = mater_coords[1], lat = mater_coords[2], zoom = 8) %>% 
   addTiles() %>% 
   addMarkers(lng = mater_coords[1], lat = mater_coords[2]) %>% 
+  addProviderTiles(
+    providers$CartoDB.DarkMatter,
+    options = providerTileOptions(opacity = 0.4)) %>%
   addPolygons(
     data=iso, 
-    fillColor = ~pal(isomax),
+    fillColor = pals,
+    smoothFactor = 0.3,
     weight = 1,
     opacity = 1,
     color = "white",
     dashArray = "3",
     fillOpacity = 0.65
-  )
+  ) %>% 
+  addLegend(
+    position="bottomleft",
+    colors=pals,
+    labels=rev(c("50-60","40-50",
+                 "30-40","20-30","10-20", "0-10")),
+    opacity = 0.6,
+    title="Temps de trajet par la route (en minutes)")
 
 
-# 2- 
+# 2- Second exemple: Temps d'accès en voiture au stade Vélodrome à Marseille
+
+velod <- sf::st_read(conn, query = "SELECT * FROM bpe21_metro WHERE DEP='13' and TYPEQU='D107';")
 
