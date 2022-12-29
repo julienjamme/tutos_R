@@ -2,6 +2,7 @@
 
 library(sf)
 library(osrm)
+library(leaflet)
 
 connecter <- function(user, password){
   nom <- "db_tpcarto"
@@ -17,24 +18,32 @@ sf_reg_metro <- st_read("tutos_R/postgis/reg_francemetro_2021.gpkg")
 str(sf_reg_metro)
 plot(st_geometry(sf_reg_metro))
 
+
+
+# 1- Construire les courbes isochrones d'accès à un équipement
+
+# a- Choisir un équipement dans la base bpe21 (metro ou dom)
 maternites_metro <- sf::st_read(conn, query = "SELECT * FROM bpe21_metro WHERE TYPEQU='D107';")
 str(maternites_metro)
 
 mater <- maternites_metro[1,]
+
+# b- Récupérer ses coordonnées 
 mater_coords <- st_coordinates(mater) %>% as.numeric
 
 plot(st_geometry(sf_reg_metro))
 points(x = mater_coords[1], y = mater_coords[2], pch = 4, lwd = 2, cex = 1.5, col = "red")
 
-library(leaflet)
-
+# c- Transformer ses coordonnées en WGS84 (epsg=4326)
 mater_coords <- st_coordinates(mater %>% st_transform(4326)) %>% as.numeric
 
+# d- Situer l'équipement sur une carte avec leaflet
 leaflet() %>% 
   setView(lng = mater_coords[1], lat = mater_coords[2], zoom = 14) %>% 
   addTiles() %>% 
   addMarkers(lng = mater_coords[1], lat = mater_coords[2])
 
+# e- Calculer les isochrones avec osrm::osrmIsochrone
 (iso <- osrmIsochrone(
   loc = mater_coords, # coordonnées du point de référence
   breaks = seq(0,60,10), # valeurs des isochrones à calculer en minutes
@@ -42,6 +51,7 @@ leaflet() %>%
 ))
 str(iso)
 
+# f- Représenter ces isochrones sous forme d'une carte choroplèthe
 bks <-  sort(unique(c(iso$isomin, iso$isomax)))
 pals <- hcl.colors(n = length(bks) - 1, palette = "Red-Blue", rev = TRUE)
 plot(iso["isomax"], breaks = bks, pal = pals, 
@@ -63,3 +73,7 @@ leaflet() %>%
     dashArray = "3",
     fillOpacity = 0.65
   )
+
+
+# 2- 
+
